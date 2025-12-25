@@ -1,10 +1,20 @@
-/* General page styling */
+/* ===============================
+   Base (unchanged desktop styles)
+   =============================== */
+
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background-color: #000;
   color: #fff;
   margin: 0;
   padding: 20px;
+}
+
+/* Constrain the entire app to the physical screen */
+html, body {
+  width: 800px;
+  height: 480px;
+  overflow: hidden;
 }
 
 #route-filters {
@@ -15,7 +25,6 @@ body {
   justify-content: center;
 }
 
-/* Make route toggle buttons circular like route circles */
 #route-buttons .toggle-btn {
   display: inline-flex;
   align-items: center;
@@ -34,25 +43,23 @@ body {
   transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
-#route-buttons .toggle-btn.active {
-  background-color: #1bd12a;
-  color: white;
-  border-color: #1bd12a;
-}
-
+#route-buttons .toggle-btn.active,
 #route-buttons .toggle-btn:hover {
   background-color: #1bd12a;
   color: white;
   border-color: #1bd12a;
 }
 
-/* Container for all arrivals */
+/* Stop list container */
 #stop-list {
   max-width: 1000px;
   margin: 0 auto;
+  overflow-y: auto;
+  height: calc(480px - 130px); /* ensures arrivals scroll, not page */
+  padding-right: 8px;
 }
 
-/* Each arrival row */
+/* Arrival rows */
 .arrival {
   display: flex;
   align-items: center;
@@ -63,7 +70,6 @@ body {
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
 }
 
-/* Route circle */
 .route-circle {
   background-color: #11881b;
   color: #fff;
@@ -80,7 +86,6 @@ body {
   box-shadow: 0 0 4px #f0f1f1;
 }
 
-/* Info container: flex with fixed columns */
 .info {
   display: grid;
   grid-template-columns: 2.5fr 1.5fr 1fr 1fr;
@@ -89,101 +94,81 @@ body {
   align-items: center;
 }
 
-/* Destination: bold and left aligned */
 .destination {
   font-weight: 700;
   font-size: 1.1rem;
-  color: #fff;
-  white-space: normal;
-  overflow-wrap: break-word;
 }
 
-/* Stop name: smaller and lighter */
 .stop-name {
   font-size: 0.85rem;
   color: #aaa;
-  white-space: normal;
-  overflow-wrap: break-word;
 }
 
-/* ETA container: stacks countdown and early/late text vertically */
-.eta-container {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  text-align: right;
-  line-height: 1.2;
-}
-
-/* Arrival countdown */
 .eta {
   font-weight: 900;
   font-size: 2.0rem;
-  color: #00e677be;
-  white-space: nowrap;
 }
 
-/* Smaller early/late text below countdown */
 .early-late {
   font-size: 0.85rem;
   font-weight: 600;
   margin-top: 2px;
-  color: inherit;
-  white-space: nowrap;
 }
 
-/* Color classes */
-.eta.early,
-.early-late.early {
-  color: #B22222;
-}
-
-.eta.on-time,
-.early-late.on-time {
-  color: #008000;
-}
-
-.eta.late,
-.early-late.late {
-  color: #8951f0;
-}
-
-.eta.scheduled,
-.early-late.scheduled {
-  color: #555555;
-  font-style: italic;
-}
-
-/* Platform text */
 .platform {
   font-size: 0.75rem;
   color: #666;
   text-align: right;
-  white-space: nowrap;
 }
 
-/* Responsive smaller screen */
-@media (max-width: 480px) {
+/* Status colors (unchanged) */
+.eta.early, .early-late.early { color: #B22222; }
+.eta.on-time, .early-late.on-time { color: #008000; }
+.eta.late, .early-late.late { color: #8951f0; }
+.eta.scheduled, .early-late.scheduled {
+  color: #555555;
+  font-style: italic;
+}
+
+/* ===============================
+   800x480 optimization
+   =============================== */
+@media (max-width: 800px) {
+
+  body {
+    padding: 10px;
+  }
+
+  #route-filters {
+    margin: 0.5rem;
+  }
+
   .arrival {
-    flex-direction: row; /* Keep row layout */
-    align-items: center;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+  }
+
+  .route-circle {
+    width: 48px;
+    height: 48px;
+    font-size: 2rem;
+    margin-right: 12px;
   }
 
   .info {
-    grid-template-columns: 2fr 1.5fr 1fr 1fr; /* Match desktop grid */
+    grid-template-columns: 2.2fr 1.3fr 1fr 1fr;
+    column-gap: 12px;
   }
 
-  .destination,
-  .stop-name,
-  .eta,
-  .platform,
+  .destination {
+    font-size: 1rem;
+  }
+
+  .eta {
+    font-size: 1.6rem;
+  }
+
   .early-late {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .eta, .platform, .early-late {
-    text-align: right;
+    font-size: 0.75rem;
   }
 }
