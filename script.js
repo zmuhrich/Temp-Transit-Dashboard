@@ -6,8 +6,8 @@ document.getElementById("js-check").textContent = "JavaScript is working!";
 
 // === CONFIGURATION ===
 const API_KEY = "73fbeb93-7586-4be1-9549-ef66f1e6151f";
-const STOP_IDS = ["1_3010", "1_29260", "40_99610", "40_99603", "1_12805", "1_123"];
-const ALL_ROUTES = ["1 Line", "2", "3", "4", "8", "G Line"];
+const STOP_IDS = ["40_99610", "40_99603"];
+const ALL_ROUTES = ["1 Line"];
 
 let activeRoutes = new Set(ALL_ROUTES);
 
