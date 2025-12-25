@@ -1,0 +1,89 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f4f4f4;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: #222;
+  color: #fff;
+}
+
+header h1 {
+  margin: 0;
+}
+
+#settings-gear {
+  font-size: 1.5em;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: white;
+}
+
+#route-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 10px;
+}
+
+.toggle-btn {
+  border: none;
+  padding: 5px 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: white;
+  background-color: green;
+  font-weight: bold;
+}
+
+.toggle-btn.active {
+  background-color: darkgreen;
+}
+
+#stop-list {
+  list-style: none;
+  padding: 10px;
+  margin: 0;
+}
+
+#stop-list li {
+  padding: 5px 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.arrival-on-time { color: green; }
+.arrival-late { color: purple; }
+.arrival-early { color: red; }
+.arrival-scheduled { color: grey; }
+
+#settings-panel {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  width: 300px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  z-index: 1000;
+}
+
+.tree-node {
+  margin-bottom: 5px;
+}
+
+.tree-children {
+  margin-left: 1em;
+}
+
+.hidden {
+  display: none;
+}
