@@ -1,270 +1,213 @@
+console.log("🚨 JavaScript loaded!");
 
-console.log(" ZACHS script.js loaded");
+/* For Testing the javascript is working
+document.getElementById("js-check").textContent = "JavaScript is working!";
+*/
 
-// ================= CONFIG =================
+// === CONFIGURATION ===
 const API_KEY = "73fbeb93-7586-4be1-9549-ef66f1e6151f";
+const STOP_IDS = ["1_3010", "1_29260", "40_99610", "40_99603", "1_12805", "1_123"];
+const ALL_ROUTES = ["1 Line", "2", "3", "4", "8", "G Line"];
+
+let activeRoutes = new Set(ALL_ROUTES);
+
 const REFRESH_INTERVAL = 60000;
 
-// Default active routes list
-let activeSelections = []; // Each item: {agencyId, routeId, shortName, direction, stopId, stopName}
-let ALL_AGENCIES = [
-  {id: "1", name: "Metro Transit"},
-  {id: "40", name: "Community Transit"},
-  {id: "29", name: "Pierce Transit"},
-  {id: "3", name: "Sound Transit"},
-  {id: "44", name: "Everett Transit"},
-  {id: "45", name: "King County Water Taxi"},
-  {id: "46", name: "Kitsap Transit"},
-  {id: "47", name: "Seattle Streetcar"},
-  {id: "48", name: "Vashon Island Ferry"}
-];
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-let ALL_ROUTES = [];
-let selectedAgency = null;
-
-// ================= UTIL =================
 function formatCountdown(arrivalTime) {
-  const diff = Math.round((arrivalTime - Date.now()) / 60000);
-  return diff <= 0 ? "Arriving" : `${diff} min`;
+  const diffMs = arrivalTime - Date.now();
+  const diffMins = Math.round(diffMs / 60000);
+  return diffMins <= 0 ? "Arriving" : `${diffMins} min`;
 }
 
-function clearPanel(panelId) {
-  const el = document.getElementById(panelId);
-  if (el) el.innerHTML = "";
+function startCountdownUpdater() {
+  setInterval(() => {
+    const now = Date.now();
+    document.querySelectorAll(".arrival").forEach(arrivalDiv => {
+      const etaDiv = arrivalDiv.querySelector(".eta");
+      if (!etaDiv) return;
+
+      const arrivalTime = parseInt(etaDiv.getAttribute("data-arrival-time"), 10);
+      if (!arrivalTime) return;
+
+      const diffMins = Math.round((arrivalTime - now) / 60000);
+      etaDiv.textContent = diffMins <= 0 ? "Arriving" : `${diffMins} min`;
+    });
+  }, 1000);
 }
 
-// ================= ARRIVALS =================
-async function fetchAndDisplayStops() {
-  const list = document.getElementById("stop-list");
-  if (!list) return;
+function createToggleButton(label, active = true) {
+  const btn = document.createElement("button");
+  btn.className = "toggle-btn";
+  if (active) btn.classList.add("active");
+  btn.textContent = label;
+  return btn;
+}
 
-  list.innerHTML = "Loading…";
+function setupRouteFilters() {
+  const container = document.getElementById("route-buttons");
+  container.innerHTML = ""; // Clear existing buttons if any
 
-  if (!activeSelections.length) {
-    list.innerHTML = "No Route Selected";
-    return;
-  }
+  ALL_ROUTES.forEach(route => {
+    const shortRoute = route.replace(/\s*Line$/i, "");
+    const btn = createToggleButton(shortRoute);
+    btn.dataset.route = route;
+
+    btn.addEventListener("click", () => {
+      if (btn.classList.contains("active")) {
+        btn.classList.remove("active");
+        activeRoutes.delete(route);
+      } else {
+        btn.classList.add("active");
+        activeRoutes.add(route);
+      }
+      fetchAndDisplayStopsWithDataAttr();
+    });
+
+    container.appendChild(btn);
+  });
+
+  document.getElementById("show-all-routes").onclick = () => {
+    activeRoutes = new Set(ALL_ROUTES);
+    document.querySelectorAll("#route-buttons .toggle-btn").forEach(btn => btn.classList.add("active"));
+    fetchAndDisplayStopsWithDataAttr();
+  };
+
+  document.getElementById("clear-all-routes").onclick = () => {
+    activeRoutes.clear();
+    document.querySelectorAll("#route-buttons .toggle-btn").forEach(btn => btn.classList.remove("active"));
+    fetchAndDisplayStopsWithDataAttr();
+  };
+}
+
+async function fetchAndDisplayStopsWithDataAttr() {
+  const stopList = document.getElementById("stop-list");
+  stopList.innerHTML = "";
 
   let allArrivals = [];
 
-  for (const sel of activeSelections) {
+  for (const stopId of STOP_IDS) {
     try {
-      const url = `https://api.pugetsound.onebusaway.org/api/where/arrivals-and-departures-for-stop/${sel.stopId}.json?key=${API_KEY}`;
-      const res = await fetch(url);
-      if (!res.ok) continue;
-      const data = await res.json();
-      const arrivals = data.data.entry.arrivalsAndDepartures || [];
+      const url = `https://api.pugetsound.onebusaway.org/api/where/arrivals-and-departures-for-stop/${stopId}.json?key=${API_KEY}`;
+      const response = await fetch(url);
+      if (!response.ok || response.status === 429) continue;
 
-      const filtered = arrivals.filter(a => a.routeId === sel.routeId && a.tripHeadsign === sel.direction);
-      filtered.forEach(a => {
-        allArrivals.push({
-          route: sel.shortName,
-          direction: sel.direction,
-          stop: sel.stopName,
-          scheduledTime: a.predictedArrivalTime || a.scheduledArrivalTime,
-          status: a.status || "scheduled"
-        });
+      const data = await response.json();
+      const stopName = data.data.references?.stops?.find(s => s.id === stopId)?.name || "Unknown Stop";
+      const arrivals = data.data.entry.arrivalsAndDepartures;
+
+      arrivals.forEach(arrival => {
+        const route = arrival.routeShortName;
+        if (activeRoutes.has(route)) {
+          allArrivals.push({
+            stopName,
+            route: arrival.routeShortName,
+            headsign: arrival.tripHeadsign,
+            arrivalTime: arrival.predictedArrivalTime || arrival.scheduledArrivalTime,
+            platform: arrival.actualTrack || arrival.scheduledTrack || "",
+            scheduledTime: arrival.scheduledArrivalTime,
+            predictedTime: arrival.predictedArrivalTime,
+          });
+        }
       });
-    } catch (err) {
-      console.error("Error fetching stop arrivals:", err);
+    } catch (error) {
+      console.error("Error:", error);
     }
+    await delay(500);
   }
 
-  allArrivals.sort((a,b) => a.scheduledTime - b.scheduledTime);
+  allArrivals.sort((a, b) => a.arrivalTime - b.arrivalTime);
 
-  if (!allArrivals.length) {
-    list.innerHTML = "No Upcoming arrivals for selected routes.";
+  if (allArrivals.length === 0) {
+    stopList.textContent = "No upcoming arrivals for selected routes.";
     return;
   }
 
-  // Render arrivals
-  list.innerHTML = "";
-  allArrivals.forEach(a => {
-    const row = document.createElement("div");
-    row.className = "arrival-row";
+  allArrivals.forEach(({ stopName, route, headsign, arrivalTime, platform, scheduledTime, predictedTime }) => {
+    const arrivalDiv = document.createElement("div");
+    arrivalDiv.className = "arrival";
 
-    const routeEl = document.createElement("div");
-    routeEl.className = "arrival-route";
-    routeEl.textContent = a.route;
+    const routeDiv = document.createElement("div");
+    routeDiv.className = "route-circle";
+    const shortRoute = route.replace(/\s*Line$/i, "");
+    routeDiv.textContent = shortRoute;
 
-    const directionEl = document.createElement("div");
-    directionEl.className = "arrival-direction";
-    directionEl.textContent = a.direction;
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "info";
 
-    const stopEl = document.createElement("div");
-    stopEl.className = "arrival-stop";
-    stopEl.textContent = a.stop;
+    const destDiv = document.createElement("div");
+    destDiv.className = "destination";
+    destDiv.textContent = headsign || "No destination";
 
-    const etaEl = document.createElement("div");
-    etaEl.className = "arrival-eta";
-    etaEl.textContent = formatCountdown(a.scheduledTime);
+    const stopDiv = document.createElement("div");
+    stopDiv.className = "stop-name";
+    stopDiv.textContent = stopName;
 
-    // Color based on status
-    switch(a.status.toLowerCase()) {
-      case "on time": etaEl.style.color = "green"; break;
-      case "late": etaEl.style.color = "purple"; break;
-      case "early": etaEl.style.color = "red"; break;
-      default: etaEl.style.color = "grey";
+    // Determine status and early/late text
+    let statusClass = "scheduled"; // default
+    let earlyLateText = "";
+
+    if (predictedTime) {
+      const diffSeconds = (predictedTime - scheduledTime) / 1000;
+      const diffMinutes = Math.round(diffSeconds / 60);
+
+      if (diffSeconds < -60) {
+        statusClass = "early";
+        earlyLateText = `${Math.abs(diffMinutes)} min early`;
+      } else if (Math.abs(diffSeconds) <= 60) {
+        statusClass = "on-time";
+        earlyLateText = `On time`;
+      } else if (diffSeconds > 60) {
+        statusClass = "late";
+        earlyLateText = `${diffMinutes} min late`;
+      }
+    } else {
+      earlyLateText = "Scheduled";
     }
 
-    row.append(routeEl, directionEl, stopEl, etaEl);
-    list.appendChild(row);
+    // Container for countdown and early/late text (stacked vertically)
+    const etaContainer = document.createElement("div");
+    etaContainer.style.display = "flex";
+    etaContainer.style.flexDirection = "column";
+    etaContainer.style.alignItems = "flex-end"; // aligns both lines to the right
+    etaContainer.style.lineHeight = "1.2";
+
+    const etaDiv = document.createElement("div");
+    etaDiv.className = `eta ${statusClass}`;
+    etaDiv.textContent = formatCountdown(predictedTime || scheduledTime);
+    etaDiv.setAttribute("data-arrival-time", predictedTime || scheduledTime);
+
+    const earlyLateDiv = document.createElement("div");
+    earlyLateDiv.className = `early-late ${statusClass}`;
+    earlyLateDiv.textContent = earlyLateText;
+
+    etaContainer.appendChild(etaDiv);
+    etaContainer.appendChild(earlyLateDiv);
+
+
+    const platformDiv = document.createElement("div");
+    platformDiv.className = "platform";
+    if (platform) platformDiv.textContent = `Track ${platform}`;
+
+    infoDiv.appendChild(destDiv);
+    infoDiv.appendChild(stopDiv);
+    infoDiv.appendChild(etaContainer);
+
+    if (platform) infoDiv.appendChild(platformDiv);
+
+    arrivalDiv.appendChild(routeDiv);
+    arrivalDiv.appendChild(infoDiv);
+    stopList.appendChild(arrivalDiv);
   });
 }
 
-// ================= SETTINGS =================
-function openSettingsPanel() {
-  const panel = document.getElementById("settings-panel");
-  if (!panel) return;
-  panel.innerHTML = "<h3>Select Agency → Route → Direction → Stop</h3>";
-
-  // Agency selection
-  ALL_AGENCIES.forEach(agency => {
-    const row = document.createElement("div");
-    const rb = document.createElement("input");
-    rb.type = "radio";
-    rb.name = "agency";
-    rb.value = agency.id;
-    rb.checked = selectedAgency === agency.id;
-    rb.id = `agency-${agency.id}`;
-
-    rb.onclick = async () => {
-      selectedAgency = agency.id;
-      await fetchRoutes(selectedAgency);
-      clearPanel("route-tree");
-      clearPanel("stop-list");
-    };
-
-    const label = document.createElement("label");
-    label.htmlFor = rb.id;
-    label.textContent = agency.name;
-
-    row.append(rb, label);
-    panel.appendChild(row);
-  });
-
-  const treeContainer = document.createElement("div");
-  treeContainer.id = "route-tree";
-  treeContainer.style.maxHeight = "300px";
-  treeContainer.style.overflowY = "auto";
-  panel.appendChild(treeContainer);
-
-  panel.style.display = "block";
-}
-
-async function fetchRoutes(agencyId) {
-  const tree = document.getElementById("route-tree");
-  if (!tree) return;
-  tree.innerHTML = "Loading routes…";
-
-  try {
-    const url = `https://api.pugetsound.onebusaway.org/api/where/routes-for-agency/${agencyId}.json?key=${API_KEY}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch routes: ${res.status}`);
-    const data = await res.json();
-    const routes = data.data.list || [];
-
-    ALL_ROUTES = routes.map(r => ({
-      routeId: r.id,
-      shortName: r.shortName,
-      directionNames: r.directionNames?.length ? r.directionNames : ["Outbound", "Inbound"]
-    })).sort((a,b) => {
-      const nA = parseInt(a.shortName);
-      const nB = parseInt(b.shortName);
-      if (!isNaN(nA) && !isNaN(nB)) return nA - nB;
-      if (!isNaN(nA)) return -1;
-      if (!isNaN(nB)) return 1;
-      return a.shortName.localeCompare(b.shortName);
-    });
-
-    renderRouteTree();
-  } catch(err) {
-    console.error(err);
-    tree.innerHTML = "Failed to load routes";
-  }
-}
-
-function renderRouteTree() {
-  const tree = document.getElementById("route-tree");
-  if (!tree) return;
-  tree.innerHTML = "";
-
-  ALL_ROUTES.forEach(route => {
-    const routeDiv = document.createElement("div");
-    routeDiv.className = "tree-route";
-    routeDiv.textContent = route.shortName;
-    routeDiv.style.cursor = "pointer";
-
-    const dirDiv = document.createElement("div");
-    dirDiv.style.display = "none";
-    dirDiv.style.marginLeft = "15px";
-
-    route.directionNames.forEach(dir => {
-      const dirBtn = document.createElement("button");
-      dirBtn.textContent = dir;
-      dirBtn.onclick = async () => selectDirection(route, dir);
-      dirDiv.appendChild(dirBtn);
-    });
-
-    routeDiv.onclick = () => {
-      dirDiv.style.display = dirDiv.style.display === "none" ? "block" : "none";
-    };
-
-    tree.appendChild(routeDiv);
-    tree.appendChild(dirDiv);
-  });
-}
-
-async function selectDirection(route, direction) {
-  // Prompt stop selection
-  const stopContainer = document.getElementById("stop-selection");
-  if (!stopContainer) return;
-  stopContainer.innerHTML = "Loading stops…";
-
-  try {
-    const url = `https://api.pugetsound.onebusaway.org/api/where/stops-for-route/${route.routeId}.json?key=${API_KEY}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch stops: ${res.status}`);
-    const data = await res.json();
-    const stops = data.data.list || [];
-
-    stopContainer.innerHTML = "<h4>Select Stop</h4>";
-
-    stops.forEach(s => {
-      const btn = document.createElement("button");
-      btn.textContent = s.name;
-      btn.onclick = () => {
-        // Add selection if not already added
-        const exists = activeSelections.some(sel =>
-          sel.routeId === route.routeId && sel.direction === direction && sel.stopId === s.id
-        );
-        if (!exists) {
-          activeSelections.push({
-            agencyId: selectedAgency,
-            routeId: route.routeId,
-            shortName: route.shortName,
-            direction: direction,
-            stopId: s.id,
-            stopName: s.name
-          });
-        }
-        fetchAndDisplayStops();
-      };
-      stopContainer.appendChild(btn);
-    });
-  } catch(err) {
-    console.error(err);
-    stopContainer.innerHTML = "Failed to load stops";
-  }
-}
-
-// ================= INIT =================
-document.addEventListener("DOMContentLoaded", () => {
-  const gear = document.getElementById("settings-gear");
-  if (gear) {
-    gear.onclick = openSettingsPanel;
-  }
-
-  fetchAndDisplayStops();
-  setInterval(fetchAndDisplayStops, REFRESH_INTERVAL);
-});
+// Initial boot
+(async () => {
+  setupRouteFilters();
+  await fetchAndDisplayStopsWithDataAttr();
+  startCountdownUpdater();
+  setInterval(fetchAndDisplayStopsWithDataAttr, REFRESH_INTERVAL);
+})();
