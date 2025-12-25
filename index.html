@@ -1,26 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Transit Arrivals Dashboard</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transit Arrivals Display</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<header>
-  <h1>Andrew Transit Arrivals</h1>
-  <button id="settings-gear" title="Settings">⚙️</button>
-</header>
 
-<main>
-  <div id="route-buttons"></div>
-  <ul id="stop-list">
-    <li>No Routes Selected</li>
-  </ul>
-</main>
+<div id="filters">
+  <div id="route-filters" class="filter-group">
+    <h2>Routes</h2>
+    <div id="route-buttons"></div>
+    <div class="filter-controls">
+      <button id="show-all-routes">Show All</button>
+      <button id="clear-all-routes">Clear All</button>
+    </div>
+  </div>
 
-<div id="settings-panel" class="hidden"></div>
+</div>
 
-<script src="script.js"></script>
+<div id="stop-list"></div>
+
+
+  <script src="script.js"></script>
 </body>
 </html>
