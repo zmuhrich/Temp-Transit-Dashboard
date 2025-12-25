@@ -74,9 +74,10 @@ html, body {
   background-color: #11881b;
   color: #fff;
   font-weight: bold;
-  font-size: 2.5rem;
-  width: 60px;
-  height: 60px;
+   <!-- Double font size, width, and height-->
+  font-size: 5rem;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -96,27 +97,32 @@ html, body {
 
 .destination {
   font-weight: 700;
-  font-size: 1.1rem;
+     <!-- font size was 1.1-->
+  font-size: 2.5rem;
 }
 
 .stop-name {
-  font-size: 0.85rem;
+      <!-- font size was 0.85-->
+  font-size: 1.7rem;
   color: #aaa;
 }
 
 .eta {
   font-weight: 900;
-  font-size: 2.0rem;
+         <!-- font size was 2.0-->
+  font-size: 4.0rem;
 }
 
 .early-late {
-  font-size: 0.85rem;
+         <!-- font size was 0.85-->
+  font-size: 1.7rem;
   font-weight: 600;
   margin-top: 2px;
 }
 
 .platform {
-  font-size: 0.75rem;
+         <!-- font size was 0.75-->
+  font-size: 1.5rem;
   color: #666;
   text-align: right;
 }
